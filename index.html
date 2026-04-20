@@ -1,0 +1,1057 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dashboard Electoral · Perú 2026</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:ital,wght@0,300;0,400;0,500;1,300&family=Lora:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+  <style>
+    :root {
+      --bg:        #07090f;
+      --surface:   #0f1320;
+      --border:    #1e2540;
+      --muted:     #3a4060;
+      --text:      #c8d0e8;
+      --bright:    #eef0f8;
+      --dim:       #606880;
+
+      --c1: #f59e0b;  /* Fujimori   - ámbar  */
+      --c2: #f43f5e;  /* López A.   - rojo   */
+      --c3: #38bdf8;  /* Nieto      - celeste */
+      --c4: #a78bfa;  /* Belmont    - lila   */
+      --c5: #4ade80;  /* Sánchez    - verde  */
+      --c6: #64748b;  /* Otros              */
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'DM Mono', monospace;
+      font-size: 13px;
+      line-height: 1.5;
+      min-height: 100vh;
+    }
+
+    /* ── HEADER ───────────────────────────────────────────── */
+    header {
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      padding: 18px 28px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+
+    .header-left h1 {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 2.1rem;
+      letter-spacing: 2px;
+      color: var(--bright);
+    }
+
+    .header-left p {
+      color: var(--dim);
+      font-size: 11px;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+    }
+
+    .live-badge {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: rgba(244,63,94,0.12);
+      border: 1px solid rgba(244,63,94,0.3);
+      border-radius: 4px;
+      padding: 6px 14px;
+      font-size: 11px;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      color: #f43f5e;
+    }
+
+    .live-dot {
+      width: 7px; height: 7px;
+      border-radius: 50%;
+      background: #f43f5e;
+      animation: pulse 1.4s ease-in-out infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50%       { opacity: 0.4; transform: scale(0.75); }
+    }
+
+    /* ── PROGRESS BAR ─────────────────────────────────────── */
+    .progress-section {
+      padding: 14px 28px;
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      gap: 24px;
+      flex-wrap: wrap;
+    }
+
+    .progress-label {
+      font-size: 11px;
+      color: var(--dim);
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      white-space: nowrap;
+    }
+
+    .progress-bar-wrap {
+      flex: 1;
+      min-width: 200px;
+      height: 6px;
+      background: var(--border);
+      border-radius: 3px;
+      overflow: hidden;
+    }
+
+    .progress-bar-fill {
+      height: 100%;
+      background: linear-gradient(90deg, var(--c1), var(--c2));
+      border-radius: 3px;
+      transition: width 0.8s ease;
+    }
+
+    .progress-pct {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 1.5rem;
+      color: var(--bright);
+      letter-spacing: 1px;
+    }
+
+    .meta-chips {
+      display: flex;
+      gap: 20px;
+      flex-wrap: wrap;
+    }
+
+    .chip {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .chip-label { font-size: 10px; color: var(--dim); letter-spacing: 1px; }
+    .chip-value { font-size: 12px; color: var(--bright); font-weight: 500; }
+
+    /* ── MAIN GRID ────────────────────────────────────────── */
+    .main-grid {
+      display: grid;
+      grid-template-columns: 380px 1fr;
+      gap: 16px;
+      padding: 16px 28px;
+    }
+
+    @media (max-width: 900px) {
+      .main-grid { grid-template-columns: 1fr; }
+    }
+
+    /* ── CARDS ────────────────────────────────────────────── */
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 18px;
+    }
+
+    .card-title {
+      font-family: 'Lora', serif;
+      font-style: italic;
+      font-size: 11px;
+      letter-spacing: 1px;
+      color: var(--dim);
+      text-transform: uppercase;
+      margin-bottom: 16px;
+      padding-bottom: 10px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    /* ── RESULTS TABLE ────────────────────────────────────── */
+    .results-table { width: 100%; border-collapse: collapse; }
+
+    .results-table tr { border-bottom: 1px solid var(--border); }
+    .results-table tr:last-child { border-bottom: none; }
+
+    .results-table td {
+      padding: 9px 4px;
+      vertical-align: middle;
+    }
+
+    .rank {
+      font-size: 10px;
+      color: var(--dim);
+      width: 20px;
+      text-align: right;
+    }
+
+    .dot {
+      width: 10px; height: 10px;
+      border-radius: 50%;
+      display: inline-block;
+      margin: 0 8px 0 10px;
+      flex-shrink: 0;
+    }
+
+    .cand-name {
+      color: var(--bright);
+      font-size: 12px;
+      font-weight: 500;
+    }
+
+    .cand-party {
+      font-size: 10px;
+      color: var(--dim);
+    }
+
+    .pct-bar-wrap {
+      padding: 0 8px;
+    }
+
+    .pct-bar {
+      height: 4px;
+      background: var(--border);
+      border-radius: 2px;
+      overflow: hidden;
+      margin-top: 4px;
+    }
+
+    .pct-bar-fill {
+      height: 100%;
+      border-radius: 2px;
+      transition: width 1s ease;
+    }
+
+    .pct-num {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 1.3rem;
+      letter-spacing: 1px;
+      text-align: right;
+      white-space: nowrap;
+    }
+
+    .votes-num {
+      font-size: 10px;
+      color: var(--dim);
+      text-align: right;
+      white-space: nowrap;
+    }
+
+    .second-round-tag {
+      font-size: 9px;
+      background: rgba(245,158,11,0.15);
+      border: 1px solid rgba(245,158,11,0.3);
+      color: #f59e0b;
+      border-radius: 3px;
+      padding: 1px 5px;
+      letter-spacing: 1px;
+      margin-left: 4px;
+    }
+
+    /* ── PROJECTION BAR ───────────────────────────────────── */
+    .proj-section {
+      margin-top: 16px;
+      padding-top: 14px;
+      border-top: 1px solid var(--border);
+    }
+
+    .proj-title {
+      font-size: 10px;
+      color: var(--dim);
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      margin-bottom: 10px;
+    }
+
+    .proj-bar {
+      display: flex;
+      height: 22px;
+      border-radius: 3px;
+      overflow: hidden;
+      gap: 1px;
+    }
+
+    .proj-segment {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 9px;
+      font-weight: 500;
+      color: rgba(0,0,0,0.75);
+      transition: width 0.8s ease;
+      white-space: nowrap;
+      overflow: hidden;
+    }
+
+    /* ── CHART ────────────────────────────────────────────── */
+    .chart-container { position: relative; height: 280px; }
+
+    /* ── MAP ──────────────────────────────────────────────── */
+    .full-row {
+      padding: 0 28px 16px;
+    }
+
+    #map {
+      height: 380px;
+      border-radius: 6px;
+      border: 1px solid var(--border);
+      background: #0a0d18;
+    }
+
+    .leaflet-container { background: #0a0d18 !important; }
+
+    /* ── PROB SECTION ─────────────────────────────────────── */
+    .prob-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+      gap: 12px;
+      padding: 0 28px 16px;
+    }
+
+    .prob-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .prob-cand {
+      font-size: 11px;
+      color: var(--bright);
+      font-weight: 500;
+    }
+
+    .prob-value {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 1.8rem;
+      letter-spacing: 1px;
+    }
+
+    .prob-label {
+      font-size: 10px;
+      color: var(--dim);
+      letter-spacing: 0.5px;
+    }
+
+    .prob-ring-wrap {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    /* ── REGION TABLE ─────────────────────────────────────── */
+    .region-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 11px;
+    }
+
+    .region-table th {
+      padding: 6px 10px;
+      text-align: left;
+      color: var(--dim);
+      font-weight: 400;
+      letter-spacing: 1px;
+      font-size: 10px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .region-table td {
+      padding: 7px 10px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .region-table tr:last-child td { border-bottom: none; }
+
+    .winner-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 10px;
+    }
+
+    /* ── FOOTER ───────────────────────────────────────────── */
+    footer {
+      text-align: center;
+      padding: 20px;
+      font-size: 10px;
+      color: var(--muted);
+      letter-spacing: 1px;
+      border-top: 1px solid var(--border);
+      margin-top: 4px;
+    }
+
+    /* ── UPDATE TICKER ────────────────────────────────────── */
+    .ticker {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 8px 28px;
+      background: rgba(56,189,248,0.05);
+      border-bottom: 1px solid var(--border);
+      font-size: 10px;
+      color: var(--dim);
+    }
+
+    .ticker span { color: #38bdf8; }
+
+    /* ── SECTION LABEL ────────────────────────────────────── */
+    .section-label {
+      font-family: 'Lora', serif;
+      font-style: italic;
+      font-size: 11px;
+      letter-spacing: 2px;
+      color: var(--dim);
+      text-transform: uppercase;
+      padding: 18px 28px 10px;
+    }
+
+    /* Scrollbar */
+    ::-webkit-scrollbar { width: 5px; height: 5px; }
+    ::-webkit-scrollbar-track { background: var(--bg); }
+    ::-webkit-scrollbar-thumb { background: var(--muted); border-radius: 3px; }
+  </style>
+</head>
+<body>
+
+<!-- HEADER -->
+<header>
+  <div class="header-left">
+    <h1>Elecciones Generales 2026</h1>
+    <p>Primera Vuelta · Resultados ONPE · Presidencial</p>
+  </div>
+  <div class="live-badge">
+    <div class="live-dot"></div>
+    En vivo
+  </div>
+</header>
+
+<!-- TICKER -->
+<div class="ticker">
+  <span>ÚLTIMA ACTUALIZACIÓN</span>
+  <span id="last-update">—</span>
+  &nbsp;·&nbsp; Próximo refresh en <span id="countdown">05:00</span>
+</div>
+
+<!-- PROGRESS -->
+<div class="progress-section">
+  <div class="progress-label">Actas contabilizadas</div>
+  <div class="progress-bar-wrap">
+    <div class="progress-bar-fill" id="progress-fill" style="width: 0%"></div>
+  </div>
+  <div class="progress-pct" id="progress-pct">0.00%</div>
+  <div class="meta-chips">
+    <div class="chip">
+      <span class="chip-label">Votos válidos</span>
+      <span class="chip-value" id="votos-validos">—</span>
+    </div>
+    <div class="chip">
+      <span class="chip-label">Actas pendientes</span>
+      <span class="chip-value" id="actas-pendientes">—</span>
+    </div>
+    <div class="chip">
+      <span class="chip-label">Total actas</span>
+      <span class="chip-value" id="total-actas">—</span>
+    </div>
+  </div>
+</div>
+
+<!-- MAIN GRID -->
+<div class="main-grid">
+
+  <!-- LEFT: Results -->
+  <div class="card">
+    <div class="card-title">Resultados parciales — ONPE</div>
+
+    <table class="results-table" id="results-table">
+      <!-- filled by JS -->
+    </table>
+
+    <!-- Stacked bar -->
+    <div class="proj-section">
+      <div class="proj-title">Distribución del voto válido</div>
+      <div class="proj-bar" id="vote-bar"></div>
+    </div>
+  </div>
+
+  <!-- RIGHT: Chart -->
+  <div class="card">
+    <div class="card-title">Evolución del conteo + proyección al 100%</div>
+    <div class="chart-container">
+      <canvas id="evo-chart"></canvas>
+    </div>
+  </div>
+</div>
+
+<!-- PROB SECTION -->
+<div class="section-label">Probabilidad de pase a segunda vuelta</div>
+<div class="prob-grid" id="prob-grid">
+  <!-- filled by JS -->
+</div>
+
+<!-- MAP -->
+<div class="section-label">Ganador por departamento</div>
+<div class="full-row">
+  <div id="map"></div>
+</div>
+
+<!-- REGION TABLE -->
+<div class="section-label">Detalle por región</div>
+<div class="full-row">
+  <div class="card" style="padding: 0; overflow: hidden;">
+    <table class="region-table" id="region-table">
+      <thead>
+        <tr>
+          <th>Departamento</th>
+          <th>1° Candidato</th>
+          <th>%</th>
+          <th>2° Candidato</th>
+          <th>%</th>
+          <th>Dif.</th>
+        </tr>
+      </thead>
+      <tbody id="region-tbody">
+        <!-- filled by JS -->
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<footer>
+  Dashboard Electoral 2026 · Fuente: ONPE · Resultados en tiempo real · Presidencial Primera Vuelta
+</footer>
+
+<script>
+// ═══════════════════════════════════════════════════════
+//  CONFIGURACIÓN — PROXY ONPE
+//  Una vez que despliegues el Worker en Cloudflare,
+//  reemplaza la URL de abajo con la tuya.
+// ═══════════════════════════════════════════════════════
+
+const PROXY_URL = 'https://onpe-proxy.carloconstantini1.workers.dev';
+// Ejemplo: 'https://onpe-proxy.carlo.workers.dev'
+
+// Paleta de colores por candidato (orden descendente de votos)
+// El dashboard asigna colores automáticamente según ranking
+const COLOR_PALETTE = [
+  '#f59e0b', // 1° ámbar
+  '#f43f5e', // 2° rojo
+  '#38bdf8', // 3° celeste
+  '#a78bfa', // 4° lila
+  '#4ade80', // 5° verde
+  '#fb923c', // 6° naranja
+  '#e879f9', // 7° magenta
+  '#34d399', // 8° esmeralda
+  '#f87171', // 9° coral
+  '#60a5fa', // 10° azul
+];
+
+// Estado global mutable
+let CANDIDATES = [];
+let ACTAS = { pct: 0, contabilizadas: 0, total: 0, votosValidos: 0 };
+let HISTORY   = [];
+let PROBS     = [];
+
+// El mapa de departamentos sigue siendo mock hasta que
+// ONPE exponga resultados por ubigeo departamental
+const DEPARTMENTS = [
+  { name: 'Amazonas',      winner: 0, p1: 0, p2: 0, i2: 1 },
+  { name: 'Áncash',        winner: 0, p1: 0, p2: 0, i2: 1 },
+  { name: 'Apurímac',      winner: 0, p1: 0, p2: 0, i2: 1 },
+  { name: 'Arequipa',      winner: 0, p1: 0, p2: 0, i2: 1 },
+  { name: 'Ayacucho',      winner: 0, p1: 0, p2: 0, i2: 1 },
+  { name: 'Cajamarca',     winner: 0, p1: 0, p2: 0, i2: 1 },
+  { name: 'Callao',        winner: 0, p1: 0, p2: 0, i2: 1 },
+  { name: 'Cusco',         winner: 0, p1: 0, p2: 0, i2: 1 },
+  { name: 'Huancavelica',  winner: 0, p1: 0, p2: 0, i2: 1 },
+  { name: 'Huánuco',       winner: 0, p1: 0, p2: 0, i2: 1 },
+  { name: 'Ica',           winner: 0, p1: 0, p2: 0, i2: 1 },
+  { name: 'Junín',         winner: 0, p1: 0, p2: 0, i2: 1 },
+  { name: 'La Libertad',   winner: 0, p1: 0, p2: 0, i2: 1 },
+  { name: 'Lambayeque',    winner: 0, p1: 0, p2: 0, i2: 1 },
+  { name: 'Lima',          winner: 0, p1: 0, p2: 0, i2: 1 },
+  { name: 'Loreto',        winner: 0, p1: 0, p2: 0, i2: 1 },
+  { name: 'Madre de Dios', winner: 0, p1: 0, p2: 0, i2: 1 },
+  { name: 'Moquegua',      winner: 0, p1: 0, p2: 0, i2: 1 },
+  { name: 'Pasco',         winner: 0, p1: 0, p2: 0, i2: 1 },
+  { name: 'Piura',         winner: 0, p1: 0, p2: 0, i2: 1 },
+  { name: 'Puno',          winner: 0, p1: 0, p2: 0, i2: 1 },
+  { name: 'San Martín',    winner: 0, p1: 0, p2: 0, i2: 1 },
+  { name: 'Tacna',         winner: 0, p1: 0, p2: 0, i2: 1 },
+  { name: 'Tumbes',        winner: 0, p1: 0, p2: 0, i2: 1 },
+  { name: 'Ucayali',       winner: 0, p1: 0, p2: 0, i2: 1 },
+];
+
+// ═══════════════════════════════════════════════════════
+//  FETCH ONPE — a través del proxy Cloudflare Worker
+// ═══════════════════════════════════════════════════════
+
+let evoChart = null; // referencia al chart para actualizarlo
+
+async function fetchOnpe() {
+  try {
+    // Una sola llamada que trae todo y guarda snapshot en KV
+    const res  = await fetch(`${PROXY_URL}/todo`);
+    const json = await res.json();
+
+    const dataP = json.participantes;
+    const dataT = json.totales;
+
+    if (!dataP.success || !dataT.success) {
+      console.warn('ONPE devolvió error:', dataP, dataT);
+      return;
+    }
+
+    // ── Mapear ACTAS (totales nacionales) ─────────────
+    const t = dataT.data;
+    ACTAS = {
+      pct:            t.actasContabilizadas,
+      contabilizadas: t.contabilizadas,
+      total:          t.totalActas,
+      votosValidos:   t.totalVotosValidos,
+    };
+
+    // ── Mapear CANDIDATOS ─────────────────────────────
+    const participantes = [...dataP.data].reverse();
+    const TOP_N  = 9;
+    const top    = participantes.slice(0, TOP_N);
+    const otros  = participantes.slice(TOP_N);
+
+    const otrosPct   = otros.reduce((s, c) => s + c.porcentajeVotosValidos, 0);
+    const otrosVotos = otros.reduce((s, c) => s + c.totalVotosValidos, 0);
+
+    CANDIDATES = top.map((c, i) => ({
+      id:    `c${i}`,
+      name:  apellido(c.nombreCandidato),
+      party: c.nombreAgrupacionPolitica,
+      color: COLOR_PALETTE[i] || '#64748b',
+      pct:   c.porcentajeVotosValidos,
+      votes: c.totalVotosValidos,
+    }));
+
+    CANDIDATES.push({
+      id: 'otros', name: 'Otros', party: `${otros.length} candidatos`,
+      color: '#334155', pct: otrosPct, votes: otrosVotos,
+    });
+
+    calcularProbs();
+
+    // ── Cargar historial desde KV ─────────────────────
+    await fetchHistorial();
+
+    // ── Re-renderizar todo ────────────────────────────
+    renderProgress();
+    renderResults();
+    renderProbs();
+    renderRegionTable();
+    updateChart();
+    updateTicker();
+
+  } catch (err) {
+    console.error('Error al consultar ONPE:', err);
+    document.getElementById('last-update').textContent = 'Error de conexión';
+  }
+}
+
+async function fetchHistorial() {
+  try {
+    const res  = await fetch(`${PROXY_URL}/historial`);
+    const json = await res.json();
+    if (!json.success || !json.data.length) return;
+
+    // Convertir formato KV → formato interno del gráfico
+    // Los snapshots del KV tienen: { actas, data: [{nombre, pct, votos}] }
+    // El gráfico necesita: { actas, data: [pct, pct, ...] } en el mismo orden que CANDIDATES
+    HISTORY = json.data.map(snap => ({
+      actas: snap.actas,
+      data:  snap.data.map(d => d.pct),
+    }));
+  } catch (err) {
+    console.warn('No se pudo cargar historial:', err);
+  }
+}
+
+// Extrae apellido(s) del nombre completo "APELLIDO NOMBRE"
+function apellido(nombre) {
+  const partes = nombre.trim().split(' ');
+  // Convención peruana: APELLIDO1 APELLIDO2 NOMBRE1 NOMBRE2
+  // Mostramos "Inicial. Apellido1"
+  const apellido1 = partes[0];
+  const nombre1   = partes[partes.length - 1];
+  return nombre1.charAt(0) + '. ' + apellido1.charAt(0) + apellido1.slice(1).toLowerCase();
+}
+
+// Probabilidad heurística de pase a 2da vuelta
+// Usa la ventaja del candidato sobre el siguiente como proxy
+function calcularProbs() {
+  const top5 = CANDIDATES.slice(0, 5);
+  const total = top5.reduce((s, c) => s + c.pct, 0);
+
+  // Ventaja acumulada desde el 1° hacia abajo
+  PROBS = top5.map((c, i) => {
+    const ventajaSobre3 = i < 2
+      ? Math.min(99.9, 50 + (c.pct - top5[2].pct) * 8)
+      : Math.max(0.5, (c.pct - top5[i + 1 < top5.length ? i + 1 : i].pct) * 5 + 15 - i * 5);
+    return { id: c.id, prob: Math.round(ventajaSobre3 * 10) / 10 };
+  });
+
+  // Forzar consistencia: 1° siempre > 2°
+  PROBS.sort((a, b) => {
+    const ci = id => CANDIDATES.findIndex(c => c.id === id);
+    return ci(a.id) - ci(b.id);
+  });
+}
+
+// ═══════════════════════════════════════════════════════
+//  HELPERS
+// ═══════════════════════════════════════════════════════
+
+function getCandidate(id) { return CANDIDATES.find(c => c.id === id) || CANDIDATES[0]; }
+
+function fmt(n) {
+  return n >= 1_000_000
+    ? (n / 1_000_000).toFixed(2) + 'M'
+    : n.toLocaleString('es-PE');
+}
+
+// ═══════════════════════════════════════════════════════
+//  RENDER FUNCTIONS
+// ═══════════════════════════════════════════════════════
+
+function renderProgress() {
+  document.getElementById('progress-fill').style.width = ACTAS.pct + '%';
+  document.getElementById('progress-pct').textContent = ACTAS.pct.toFixed(2) + '%';
+  document.getElementById('votos-validos').textContent = fmt(ACTAS.votosValidos);
+  document.getElementById('actas-pendientes').textContent =
+    (ACTAS.total - ACTAS.contabilizadas).toLocaleString('es-PE');
+  document.getElementById('total-actas').textContent =
+    ACTAS.total.toLocaleString('es-PE');
+}
+
+function renderResults() {
+  const tbody = document.getElementById('results-table');
+  if (!CANDIDATES.length) return;
+  const mainCands = CANDIDATES.filter(c => c.id !== 'otros');
+  const others    = CANDIDATES.find(c => c.id === 'otros');
+  const maxPct    = Math.max(...mainCands.map(c => c.pct));
+  const all       = others ? [...mainCands, others] : mainCands;
+
+  tbody.innerHTML = all.map((c, i) => {
+    const isTop2    = i < 2;
+    const rankLabel = i < mainCands.length ? (i + 1) + '°' : '–';
+    const bar2Tag   = isTop2 ? '<span class="second-round-tag">2V</span>' : '';
+    return `
+      <tr>
+        <td class="rank">${rankLabel}</td>
+        <td><span class="dot" style="background:${c.color}"></span></td>
+        <td>
+          <div class="cand-name">${c.name} ${bar2Tag}</div>
+          <div class="cand-party">${c.party}</div>
+        </td>
+        <td class="pct-bar-wrap" style="min-width:80px">
+          <div style="font-size:9px;color:var(--dim)">${c.id !== 'otros' ? fmt(c.votes) + ' votos' : ''}</div>
+          <div class="pct-bar">
+            <div class="pct-bar-fill" style="width:${(c.pct / maxPct * 100).toFixed(1)}%;background:${c.color}"></div>
+          </div>
+        </td>
+        <td class="pct-num" style="color:${c.color}">${c.pct.toFixed(2)}%</td>
+      </tr>
+    `;
+  }).join('');
+
+  // Barra apilada
+  const bar = document.getElementById('vote-bar');
+  bar.innerHTML = CANDIDATES.map(c => `
+    <div class="proj-segment"
+      style="width:${c.pct}%;background:${c.color}"
+      title="${c.name}: ${c.pct.toFixed(2)}%">
+      ${c.pct > 7 ? c.pct.toFixed(1) + '%' : ''}
+    </div>
+  `).join('');
+}
+
+function renderProbs() {
+  const grid = document.getElementById('prob-grid');
+  if (!PROBS.length) return;
+  grid.innerHTML = PROBS.map(p => {
+    const c    = getCandidate(p.id);
+    const pct  = p.prob;
+    const heat = pct >= 75 ? '#4ade80' : pct >= 35 ? '#f59e0b' : '#f43f5e';
+    return `
+      <div class="prob-card">
+        <div class="winner-chip">
+          <span class="dot" style="background:${c.color};width:8px;height:8px"></span>
+          <span class="prob-cand">${c.name}</span>
+        </div>
+        <div class="prob-value" style="color:${heat}">${pct.toFixed(1)}%</div>
+        <div class="prob-label">prob. pase a 2da vuelta</div>
+        <div style="height:3px;background:var(--border);border-radius:2px;overflow:hidden">
+          <div style="height:100%;width:${pct}%;background:${heat};border-radius:2px;transition:width 1s ease"></div>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+function renderRegionTable() {
+  const tbody = document.getElementById('region-tbody');
+  if (!CANDIDATES.length) {
+    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--dim);padding:20px">Cargando datos ONPE...</td></tr>';
+    return;
+  }
+  tbody.innerHTML = DEPARTMENTS.map(d => {
+    const w  = CANDIDATES[d.winner] || CANDIDATES[0];
+    const r2 = CANDIDATES[d.i2]    || CANDIDATES[1];
+    const diff = (d.p1 - d.p2).toFixed(1);
+    return `
+      <tr>
+        <td style="color:var(--bright)">${d.name}</td>
+        <td><span class="winner-chip">
+          <span class="dot" style="background:${w.color};width:8px;height:8px"></span>
+          ${w.name}
+        </span></td>
+        <td style="color:${w.color};font-weight:500">${d.p1 > 0 ? d.p1.toFixed(1) + '%' : '—'}</td>
+        <td><span class="winner-chip">
+          <span class="dot" style="background:${r2.color};width:8px;height:8px"></span>
+          ${r2.name}
+        </span></td>
+        <td style="color:${r2.color}">${d.p2 > 0 ? d.p2.toFixed(1) + '%' : '—'}</td>
+        <td style="color:var(--dim)">${d.p1 > 0 ? '+' + diff + 'pp' : '—'}</td>
+      </tr>
+    `;
+  }).join('');
+}
+
+// ═══════════════════════════════════════════════════════
+//  EVOLUTION CHART
+// ═══════════════════════════════════════════════════════
+
+function initChart() {
+  const ctx = document.getElementById('evo-chart').getContext('2d');
+  Chart.defaults.color = '#606880';
+  Chart.defaults.borderColor = '#1e2540';
+
+  evoChart = new Chart(ctx, {
+    type: 'line',
+    data: { labels: [], datasets: [] },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      interaction: { mode: 'index', intersect: false },
+      plugins: {
+        legend: {
+          position: 'bottom',
+          labels: { boxWidth: 10, boxHeight: 10, padding: 12,
+            font: { family: 'DM Mono', size: 10 }, color: '#c8d0e8' }
+        },
+        tooltip: {
+          backgroundColor: '#0f1320', borderColor: '#1e2540', borderWidth: 1,
+          titleFont: { family: 'DM Mono', size: 10 },
+          bodyFont: { family: 'DM Mono', size: 11 },
+          callbacks: { label: ctx => ` ${ctx.dataset.label}: ${ctx.parsed.y.toFixed(2)}%` }
+        }
+      },
+      scales: {
+        x: {
+          grid: { color: '#1e2540' },
+          ticks: { font: { family: 'DM Mono', size: 9 }, color: '#606880' },
+          title: { display: true, text: '% Actas contabilizadas', color: '#3a4060', font: { size: 10 } }
+        },
+        y: {
+          grid: { color: '#1e2540' },
+          ticks: { font: { family: 'DM Mono', size: 9 }, color: '#606880',
+            callback: v => v.toFixed(1) + '%' },
+          title: { display: true, text: '% votos válidos', color: '#3a4060', font: { size: 10 } }
+        }
+      }
+    }
+  });
+}
+
+function updateChart() {
+  if (!evoChart || !HISTORY.length || !CANDIDATES.length) return;
+  const top5 = CANDIDATES.slice(0, 5);
+
+  evoChart.data.labels = HISTORY.map(h => h.actas.toFixed(1) + '%');
+  evoChart.data.datasets = top5.map((c, ci) => ({
+    label: c.name,
+    data: HISTORY.map(h => h.data[ci] ?? null),
+    borderColor: c.color,
+    backgroundColor: c.color + '15',
+    borderWidth: 2,
+    pointRadius: 3,
+    pointBackgroundColor: c.color,
+    tension: 0.3,
+    fill: false,
+  }));
+  evoChart.update();
+}
+
+// ═══════════════════════════════════════════════════════
+//  LEAFLET MAP
+// ═══════════════════════════════════════════════════════
+
+function initMap() {
+  const map = L.map('map', {
+    zoomControl: true,
+    attributionControl: false,
+    scrollWheelZoom: false,
+  }).setView([-9.2, -75.0], 5);
+
+  // Dark tile layer (Carto Dark)
+  L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_nolabels/{z}/{x}/{y}{r}.png', {
+    maxZoom: 9,
+  }).addTo(map);
+
+  // Tooltip pane
+  const tooltip = L.tooltip({ sticky: true, opacity: 0.95,
+    className: 'map-tooltip' });
+
+  // GeoJSON de departamentos de Perú (fuente pública)
+  const GEO_URL = 'https://raw.githubusercontent.com/codeforamerica/click_that_hood/master/public/data/peru-departments.geojson';
+
+  // Build lookup: departamento name → winner candidate
+  const deptLookup = {};
+  DEPARTMENTS.forEach(d => { deptLookup[d.name] = d; });
+
+  // Fuzzy match helper
+  function findDept(geoName) {
+    const k = Object.keys(deptLookup).find(k =>
+      geoName.toLowerCase().includes(k.toLowerCase()) ||
+      k.toLowerCase().includes(geoName.toLowerCase())
+    );
+    return k ? deptLookup[k] : null;
+  }
+
+  fetch(GEO_URL)
+    .then(r => r.json())
+    .then(geo => {
+      L.geoJSON(geo, {
+        style: feature => {
+          const nm = feature.properties.name || feature.properties.NOMBDEP || '';
+          const d = findDept(nm);
+          const c = d ? getCandidate(d.winner) : null;
+          return {
+            fillColor: c ? c.color + 'cc' : '#334155',
+            fillOpacity: 0.75,
+            color: '#0a0e1a',
+            weight: 1.5,
+          };
+        },
+        onEachFeature: (feature, layer) => {
+          const nm = feature.properties.name || feature.properties.NOMBDEP || '';
+          const d = findDept(nm);
+          const c = d ? getCandidate(d.winner) : null;
+          const r2 = d ? getCandidate(d.c2) : null;
+
+          layer.on('mouseover', e => {
+            layer.setStyle({ fillOpacity: 1, weight: 2.5 });
+            tooltip
+              .setContent(d
+                ? `<b style="color:#eef0f8">${nm}</b><br>
+                   <span style="color:${c.color}">● ${c.name} ${d.p1.toFixed(1)}%</span><br>
+                   <span style="color:${r2.color}">● ${r2.name} ${d.p2.toFixed(1)}%</span>`
+                : nm)
+              .setLatLng(e.latlng)
+              .addTo(map);
+          });
+          layer.on('mousemove', e => tooltip.setLatLng(e.latlng));
+          layer.on('mouseout', () => {
+            layer.setStyle({ fillOpacity: 0.75, weight: 1.5 });
+            map.removeLayer(tooltip);
+          });
+        }
+      }).addTo(map);
+    })
+    .catch(() => {
+      document.getElementById('map').innerHTML =
+        '<div style="display:flex;align-items:center;justify-content:center;height:100%;color:var(--dim);font-size:12px">' +
+        'Mapa no disponible (verifica conexión a internet)</div>';
+    });
+
+  // Legend
+  const legend = L.control({ position: 'bottomright' });
+  legend.onAdd = () => {
+    const div = L.DomUtil.create('div');
+    div.style.cssText = 'background:#0f1320;border:1px solid #1e2540;border-radius:4px;padding:10px 12px;font:11px DM Mono,monospace;color:#c8d0e8;line-height:1.8';
+    div.innerHTML = CANDIDATES.slice(0,5).map(c =>
+      `<div><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:${c.color};margin-right:6px"></span>${c.name}</div>`
+    ).join('');
+    return div;
+  };
+  legend.addTo(map);
+}
+
+// ═══════════════════════════════════════════════════════
+//  COUNTDOWN & LAST UPDATE
+// ═══════════════════════════════════════════════════════
+
+let refreshSeconds = 300;
+
+function updateTicker() {
+  const now = new Date();
+  document.getElementById('last-update').textContent =
+    now.toLocaleTimeString('es-PE', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+}
+
+function startCountdown() {
+  refreshSeconds = 300;
+  const el = document.getElementById('countdown');
+  const iv = setInterval(() => {
+    refreshSeconds--;
+    const m = String(Math.floor(refreshSeconds / 60)).padStart(2, '0');
+    const s = String(refreshSeconds % 60).padStart(2, '0');
+    el.textContent = `${m}:${s}`;
+    if (refreshSeconds <= 0) {
+      clearInterval(iv);
+      fetchOnpe();
+      startCountdown();
+    }
+  }, 1000);
+}
+
+// ═══════════════════════════════════════════════════════
+//  INIT
+// ═══════════════════════════════════════════════════════
+
+document.addEventListener('DOMContentLoaded', () => {
+  initChart();
+  initMap();
+  renderRegionTable(); // muestra skeleton con "Cargando..."
+  fetchOnpe();         // primera carga real desde ONPE
+  startCountdown();
+});
+</script>
+
+<style>
+  /* Leaflet tooltip override */
+  .map-tooltip {
+    background: #0f1320 !important;
+    border: 1px solid #1e2540 !important;
+    border-radius: 4px !important;
+    color: #c8d0e8 !important;
+    font: 11px 'DM Mono', monospace !important;
+    padding: 6px 10px !important;
+    box-shadow: none !important;
+  }
+  .map-tooltip::before { display: none !important; }
+</style>
+
+</body>
+</html>
