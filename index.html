@@ -1,0 +1,1282 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dashboard Electoral · Perú 2026</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:ital,wght@0,300;0,400;0,500;1,300&family=Lora:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+  <style>
+    :root {
+      --bg:        #07090f;
+      --surface:   #0f1320;
+      --border:    #1e2540;
+      --muted:     #3a4060;
+      --text:      #c8d0e8;
+      --bright:    #eef0f8;
+      --dim:       #606880;
+
+      --c1: #f59e0b;  /* Fujimori   - ámbar  */
+      --c2: #f43f5e;  /* López A.   - rojo   */
+      --c3: #38bdf8;  /* Nieto      - celeste */
+      --c4: #a78bfa;  /* Belmont    - lila   */
+      --c5: #4ade80;  /* Sánchez    - verde  */
+      --c6: #64748b;  /* Otros              */
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'DM Mono', monospace;
+      font-size: 13px;
+      line-height: 1.5;
+      min-height: 100vh;
+    }
+
+    /* ── HEADER ───────────────────────────────────────────── */
+    header {
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      padding: 18px 28px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+
+    .header-left h1 {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 2.1rem;
+      letter-spacing: 2px;
+      color: var(--bright);
+    }
+
+    .header-left p {
+      color: var(--dim);
+      font-size: 11px;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+    }
+
+    .live-badge {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: rgba(244,63,94,0.12);
+      border: 1px solid rgba(244,63,94,0.3);
+      border-radius: 4px;
+      padding: 6px 14px;
+      font-size: 11px;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      color: #f43f5e;
+    }
+
+    .live-dot {
+      width: 7px; height: 7px;
+      border-radius: 50%;
+      background: #f43f5e;
+      animation: pulse 1.4s ease-in-out infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50%       { opacity: 0.4; transform: scale(0.75); }
+    }
+
+    /* ── PROGRESS BAR ─────────────────────────────────────── */
+    .progress-section {
+      padding: 14px 28px;
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      gap: 24px;
+      flex-wrap: wrap;
+    }
+
+    .progress-label {
+      font-size: 11px;
+      color: var(--dim);
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      white-space: nowrap;
+    }
+
+    .progress-bar-wrap {
+      flex: 1;
+      min-width: 200px;
+      height: 6px;
+      background: var(--border);
+      border-radius: 3px;
+      overflow: hidden;
+    }
+
+    .progress-bar-fill {
+      height: 100%;
+      background: linear-gradient(90deg, var(--c1), var(--c2));
+      border-radius: 3px;
+      transition: width 0.8s ease;
+    }
+
+    .progress-pct {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 1.5rem;
+      color: var(--bright);
+      letter-spacing: 1px;
+    }
+
+    .meta-chips {
+      display: flex;
+      gap: 20px;
+      flex-wrap: wrap;
+    }
+
+    .chip {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .chip-label { font-size: 10px; color: var(--dim); letter-spacing: 1px; }
+    .chip-value { font-size: 12px; color: var(--bright); font-weight: 500; }
+
+    /* ── MAIN GRID ────────────────────────────────────────── */
+    .main-grid {
+      display: grid;
+      grid-template-columns: 380px 1fr;
+      gap: 16px;
+      padding: 16px 28px;
+    }
+
+    @media (max-width: 900px) {
+      .main-grid { grid-template-columns: 1fr; }
+    }
+
+    /* ── CARDS ────────────────────────────────────────────── */
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 18px;
+    }
+
+    .card-title {
+      font-family: 'Lora', serif;
+      font-style: italic;
+      font-size: 11px;
+      letter-spacing: 1px;
+      color: var(--dim);
+      text-transform: uppercase;
+      margin-bottom: 16px;
+      padding-bottom: 10px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    /* ── RESULTS TABLE ────────────────────────────────────── */
+    .results-table { width: 100%; border-collapse: collapse; }
+
+    .results-table tr { border-bottom: 1px solid var(--border); }
+    .results-table tr:last-child { border-bottom: none; }
+
+    .results-table td {
+      padding: 9px 4px;
+      vertical-align: middle;
+    }
+
+    .rank {
+      font-size: 10px;
+      color: var(--dim);
+      width: 20px;
+      text-align: right;
+    }
+
+    .dot {
+      width: 10px; height: 10px;
+      border-radius: 50%;
+      display: inline-block;
+      margin: 0 8px 0 10px;
+      flex-shrink: 0;
+    }
+
+    .cand-name {
+      color: var(--bright);
+      font-size: 12px;
+      font-weight: 500;
+    }
+
+    .cand-party {
+      font-size: 10px;
+      color: var(--dim);
+    }
+
+    .pct-bar-wrap {
+      padding: 0 8px;
+    }
+
+    .pct-bar {
+      height: 4px;
+      background: var(--border);
+      border-radius: 2px;
+      overflow: hidden;
+      margin-top: 4px;
+    }
+
+    .pct-bar-fill {
+      height: 100%;
+      border-radius: 2px;
+      transition: width 1s ease;
+    }
+
+    .pct-num {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 1.3rem;
+      letter-spacing: 1px;
+      text-align: right;
+      white-space: nowrap;
+    }
+
+    .votes-num {
+      font-size: 10px;
+      color: var(--dim);
+      text-align: right;
+      white-space: nowrap;
+    }
+
+    .second-round-tag {
+      font-size: 9px;
+      background: rgba(245,158,11,0.15);
+      border: 1px solid rgba(245,158,11,0.3);
+      color: #f59e0b;
+      border-radius: 3px;
+      padding: 1px 5px;
+      letter-spacing: 1px;
+      margin-left: 4px;
+    }
+
+    /* ── PROJECTION BAR ───────────────────────────────────── */
+    .proj-section {
+      margin-top: 16px;
+      padding-top: 14px;
+      border-top: 1px solid var(--border);
+    }
+
+    .proj-title {
+      font-size: 10px;
+      color: var(--dim);
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      margin-bottom: 10px;
+    }
+
+    .proj-bar {
+      display: flex;
+      height: 22px;
+      border-radius: 3px;
+      overflow: hidden;
+      gap: 1px;
+    }
+
+    .proj-segment {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 9px;
+      font-weight: 500;
+      color: rgba(0,0,0,0.75);
+      transition: width 0.8s ease;
+      white-space: nowrap;
+      overflow: hidden;
+    }
+
+    /* ── CHART ────────────────────────────────────────────── */
+    .chart-container { position: relative; height: 280px; }
+
+    /* ── MAP ──────────────────────────────────────────────── */
+    .full-row {
+      padding: 0 28px 16px;
+    }
+
+    #map {
+      height: 380px;
+      border-radius: 6px;
+      border: 1px solid var(--border);
+      background: #0a0d18;
+    }
+
+    .leaflet-container { background: #0a0d18 !important; }
+
+    /* ── PROB SECTION ─────────────────────────────────────── */
+    .prob-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+      gap: 12px;
+      padding: 0 28px 16px;
+    }
+
+    .prob-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .prob-cand {
+      font-size: 11px;
+      color: var(--bright);
+      font-weight: 500;
+    }
+
+    .prob-value {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 1.8rem;
+      letter-spacing: 1px;
+    }
+
+    .prob-label {
+      font-size: 10px;
+      color: var(--dim);
+      letter-spacing: 0.5px;
+    }
+
+    .prob-ring-wrap {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    /* ── REGION TABLE ─────────────────────────────────────── */
+    .region-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 11px;
+    }
+
+    .region-table th {
+      padding: 6px 10px;
+      text-align: left;
+      color: var(--dim);
+      font-weight: 400;
+      letter-spacing: 1px;
+      font-size: 10px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .region-table td {
+      padding: 7px 10px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .region-table tr:last-child td { border-bottom: none; }
+
+    .winner-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 10px;
+    }
+
+    /* ── FOOTER ───────────────────────────────────────────── */
+    footer {
+      text-align: center;
+      padding: 20px;
+      font-size: 10px;
+      color: var(--muted);
+      letter-spacing: 1px;
+      border-top: 1px solid var(--border);
+      margin-top: 4px;
+    }
+
+    /* ── UPDATE TICKER ────────────────────────────────────── */
+    .ticker {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 8px 28px;
+      background: rgba(56,189,248,0.05);
+      border-bottom: 1px solid var(--border);
+      font-size: 10px;
+      color: var(--dim);
+    }
+
+    .ticker span { color: #38bdf8; }
+
+    /* ── SECTION LABEL ────────────────────────────────────── */
+    .section-label {
+      font-family: 'Lora', serif;
+      font-style: italic;
+      font-size: 11px;
+      letter-spacing: 2px;
+      color: var(--dim);
+      text-transform: uppercase;
+      padding: 18px 28px 10px;
+    }
+
+    /* Scrollbar */
+    ::-webkit-scrollbar { width: 5px; height: 5px; }
+    ::-webkit-scrollbar-track { background: var(--bg); }
+    ::-webkit-scrollbar-thumb { background: var(--muted); border-radius: 3px; }
+  </style>
+</head>
+<body>
+
+<!-- HEADER -->
+<header>
+  <div class="header-left">
+    <h1>Elecciones Generales 2026</h1>
+    <p>Primera Vuelta · Resultados ONPE · Presidencial</p>
+  </div>
+  <div class="live-badge">
+    <div class="live-dot"></div>
+    En vivo
+  </div>
+</header>
+
+<!-- TICKER -->
+<div class="ticker">
+  <span>ÚLTIMA ACTUALIZACIÓN</span>
+  <span id="last-update">—</span>
+  &nbsp;·&nbsp; Próximo refresh en <span id="countdown">05:00</span>
+</div>
+
+<!-- PROGRESS -->
+<div class="progress-section">
+  <div class="progress-label">Actas contabilizadas</div>
+  <div class="progress-bar-wrap">
+    <div class="progress-bar-fill" id="progress-fill" style="width: 0%"></div>
+  </div>
+  <div class="progress-pct" id="progress-pct">0.00%</div>
+  <div class="meta-chips">
+    <div class="chip">
+      <span class="chip-label">Votos válidos</span>
+      <span class="chip-value" id="votos-validos">—</span>
+    </div>
+    <div class="chip">
+      <span class="chip-label">Actas pendientes</span>
+      <span class="chip-value" id="actas-pendientes">—</span>
+    </div>
+    <div class="chip">
+      <span class="chip-label">Total actas</span>
+      <span class="chip-value" id="total-actas">—</span>
+    </div>
+  </div>
+</div>
+
+<!-- MAIN GRID -->
+<div class="main-grid">
+
+  <!-- LEFT: Results -->
+  <div class="card">
+    <div class="card-title">Resultados parciales — ONPE</div>
+
+    <table class="results-table" id="results-table">
+      <!-- filled by JS -->
+    </table>
+
+    <!-- Stacked bar -->
+    <div class="proj-section">
+      <div class="proj-title">Distribución del voto válido</div>
+      <div class="proj-bar" id="vote-bar"></div>
+    </div>
+  </div>
+
+  <!-- RIGHT: Chart + Tabla proyección -->
+  <div class="card" style="display:flex;flex-direction:column;gap:0">
+    <div class="card-title">Evolución del conteo + proyección al 100%</div>
+    <div class="chart-container">
+      <canvas id="evo-chart"></canvas>
+    </div>
+    <!-- Tabla de proyección debajo del gráfico -->
+    <div id="proj-table-wrap" style="margin-top:16px;padding-top:14px;border-top:1px solid var(--border)">
+      <div style="font-size:10px;color:var(--dim);letter-spacing:1px;text-transform:uppercase;margin-bottom:10px">Proyección al 100% · basada en JEE por departamento</div>
+      <table style="width:100%;border-collapse:collapse;font-size:11px">
+        <thead>
+          <tr style="border-bottom:1px solid var(--border)">
+            <th style="padding:5px 6px;text-align:left;color:var(--dim);font-weight:400;font-size:10px">Pos</th>
+            <th style="padding:5px 6px;text-align:left;color:var(--dim);font-weight:400;font-size:10px">Candidato</th>
+            <th style="padding:5px 6px;text-align:right;color:var(--dim);font-weight:400;font-size:10px">ONPE actual</th>
+            <th style="padding:5px 6px;text-align:right;color:var(--dim);font-weight:400;font-size:10px">→ Proy. 100%</th>
+            <th style="padding:5px 6px;text-align:right;color:var(--dim);font-weight:400;font-size:10px">Δ</th>
+            <th style="padding:5px 6px;text-align:right;color:var(--dim);font-weight:400;font-size:10px">Votos ~</th>
+            <th style="padding:5px 6px;text-align:right;color:var(--dim);font-weight:400;font-size:10px">Ventaja</th>
+          </tr>
+        </thead>
+        <tbody id="proj-tbody">
+          <tr><td colspan="7" style="padding:12px 6px;color:var(--dim);font-size:11px;text-align:center">Cargando proyección JEE...</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- PROB + POLYMARKET SECTION -->
+<div class="section-label">Probabilidad de pase a segunda vuelta — ONPE vs. Polymarket</div>
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;padding:0 28px 16px">
+
+  <!-- ONPE lado izquierdo -->
+  <div class="card">
+    <div class="card-title">Estimación basada en ONPE</div>
+    <div id="prob-grid" style="display:flex;flex-direction:column;gap:10px"></div>
+  </div>
+
+  <!-- Polymarket lado derecho -->
+  <div class="card">
+    <div class="card-title">Mercado de predicción — Polymarket <span style="font-size:9px;color:var(--dim);margin-left:6px">2do lugar · $213k vol.</span></div>
+    <div id="polymarket-grid" style="display:flex;flex-direction:column;gap:10px"></div>
+    <div style="margin-top:14px;font-size:10px;color:var(--dim);line-height:1.5">
+      Los precios de Polymarket representan la probabilidad implícita del mercado de quién obtendrá el 2° lugar. 
+      <a href="https://polymarket.com/es/event/peru-presidential-election-first-round-2nd-place" target="_blank" style="color:#38bdf8;text-decoration:none">Ver mercado →</a>
+    </div>
+  </div>
+
+</div>
+
+<!-- JEE PROYECCIÓN -->
+<div class="section-label">Proyección JEE — Sánchez vs. López Aliaga</div>
+<div class="full-row">
+
+  <!-- Nota metodológica -->
+  <div id="jee-nota" style="font-size:11px;color:var(--dim);line-height:1.6;padding:10px 14px;background:rgba(56,189,248,0.05);border:1px solid rgba(56,189,248,0.15);border-radius:4px;margin-bottom:14px">
+    Cargando proyección por departamento...
+  </div>
+
+  <!-- Cards resumen proyección -->
+  <div id="jee-summary" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;margin-bottom:16px"></div>
+
+  <!-- Resultado proyectado -->
+  <div id="jee-result" style="display:none;background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:16px;margin-bottom:16px;display:flex;align-items:center;gap:24px;flex-wrap:wrap"></div>
+
+  <!-- Tabla por departamento -->
+  <div class="card" style="padding:0;overflow:hidden">
+    <table class="region-table" id="jee-tabla">
+      <thead>
+        <tr>
+          <th>Departamento</th>
+          <th style="text-align:right">Avance</th>
+          <th style="text-align:right">Actas JEE</th>
+          <th style="text-align:right">Pendientes</th>
+          <th style="text-align:right;color:#f43f5e">RLA %</th>
+          <th style="text-align:right;color:#4ade80">Sánchez %</th>
+          <th style="text-align:right">Votos rest. est.</th>
+          <th style="text-align:right;color:#f43f5e">RLA adic.</th>
+          <th style="text-align:right;color:#4ade80">Sánchez adic.</th>
+          <th style="text-align:right">Dif. parcial</th>
+        </tr>
+      </thead>
+      <tbody id="jee-tbody">
+        <tr><td colspan="10" style="text-align:center;color:var(--dim);padding:20px">Cargando datos por departamento...</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+</div>
+
+<footer>
+  Dashboard Electoral 2026 · Fuente: ONPE · Resultados en tiempo real · Presidencial Primera Vuelta
+</footer>
+
+<script>
+// ═══════════════════════════════════════════════════════
+//  CONFIGURACIÓN — PROXY ONPE
+//  Una vez que despliegues el Worker en Cloudflare,
+//  reemplaza la URL de abajo con la tuya.
+// ═══════════════════════════════════════════════════════
+
+const PROXY_URL = 'https://onpe-proxy.carloconstantini1.workers.dev';
+// Ejemplo: 'https://onpe-proxy.carlo.workers.dev'
+
+// Paleta de colores por candidato (orden descendente de votos)
+// El dashboard asigna colores automáticamente según ranking
+const COLOR_PALETTE = [
+  '#f59e0b', // 1° ámbar
+  '#f43f5e', // 2° rojo
+  '#38bdf8', // 3° celeste
+  '#a78bfa', // 4° lila
+  '#4ade80', // 5° verde
+  '#fb923c', // 6° naranja
+  '#e879f9', // 7° magenta
+  '#34d399', // 8° esmeralda
+  '#f87171', // 9° coral
+  '#60a5fa', // 10° azul
+];
+
+// Estado global mutable
+let CANDIDATES = [];
+let ACTAS = { pct: 0, contabilizadas: 0, total: 0, votosValidos: 0 };
+let HISTORY   = [];
+let PROBS     = [];
+
+// El mapa de departamentos sigue siendo mock hasta que
+// ONPE exponga resultados por ubigeo departamental
+const DEPARTMENTS = [
+  { name: 'Amazonas',      winner: 0, p1: 0, p2: 0, i2: 1 },
+  { name: 'Áncash',        winner: 0, p1: 0, p2: 0, i2: 1 },
+  { name: 'Apurímac',      winner: 0, p1: 0, p2: 0, i2: 1 },
+  { name: 'Arequipa',      winner: 0, p1: 0, p2: 0, i2: 1 },
+  { name: 'Ayacucho',      winner: 0, p1: 0, p2: 0, i2: 1 },
+  { name: 'Cajamarca',     winner: 0, p1: 0, p2: 0, i2: 1 },
+  { name: 'Callao',        winner: 0, p1: 0, p2: 0, i2: 1 },
+  { name: 'Cusco',         winner: 0, p1: 0, p2: 0, i2: 1 },
+  { name: 'Huancavelica',  winner: 0, p1: 0, p2: 0, i2: 1 },
+  { name: 'Huánuco',       winner: 0, p1: 0, p2: 0, i2: 1 },
+  { name: 'Ica',           winner: 0, p1: 0, p2: 0, i2: 1 },
+  { name: 'Junín',         winner: 0, p1: 0, p2: 0, i2: 1 },
+  { name: 'La Libertad',   winner: 0, p1: 0, p2: 0, i2: 1 },
+  { name: 'Lambayeque',    winner: 0, p1: 0, p2: 0, i2: 1 },
+  { name: 'Lima',          winner: 0, p1: 0, p2: 0, i2: 1 },
+  { name: 'Loreto',        winner: 0, p1: 0, p2: 0, i2: 1 },
+  { name: 'Madre de Dios', winner: 0, p1: 0, p2: 0, i2: 1 },
+  { name: 'Moquegua',      winner: 0, p1: 0, p2: 0, i2: 1 },
+  { name: 'Pasco',         winner: 0, p1: 0, p2: 0, i2: 1 },
+  { name: 'Piura',         winner: 0, p1: 0, p2: 0, i2: 1 },
+  { name: 'Puno',          winner: 0, p1: 0, p2: 0, i2: 1 },
+  { name: 'San Martín',    winner: 0, p1: 0, p2: 0, i2: 1 },
+  { name: 'Tacna',         winner: 0, p1: 0, p2: 0, i2: 1 },
+  { name: 'Tumbes',        winner: 0, p1: 0, p2: 0, i2: 1 },
+  { name: 'Ucayali',       winner: 0, p1: 0, p2: 0, i2: 1 },
+];
+
+// Variable global para proyección JEE
+let PROYECCION_JEE = null;
+
+// ═══════════════════════════════════════════════════════
+//  FETCH ONPE — a través del proxy Cloudflare Worker
+// ═══════════════════════════════════════════════════════
+
+let evoChart = null; // referencia al chart para actualizarlo
+
+async function fetchOnpe() {
+  try {
+    // Una sola llamada que trae todo y guarda snapshot en KV
+    const res  = await fetch(`${PROXY_URL}/todo`);
+    const json = await res.json();
+
+    const dataP = json.participantes;
+    const dataT = json.totales;
+
+    if (!dataP.success || !dataT.success) {
+      console.warn('ONPE devolvió error:', dataP, dataT);
+      return;
+    }
+
+    // ── Mapear ACTAS (totales nacionales) ─────────────
+    const t = dataT.data;
+    ACTAS = {
+      pct:            t.actasContabilizadas,
+      contabilizadas: t.contabilizadas,
+      total:          t.totalActas,
+      votosValidos:   t.totalVotosValidos,
+    };
+
+    // ── Mapear CANDIDATOS ─────────────────────────────
+    const participantes = [...dataP.data].reverse();
+    const TOP_N  = 9;
+    const top    = participantes.slice(0, TOP_N);
+    const otros  = participantes.slice(TOP_N);
+
+    const otrosPct   = otros.reduce((s, c) => s + c.porcentajeVotosValidos, 0);
+    const otrosVotos = otros.reduce((s, c) => s + c.totalVotosValidos, 0);
+
+    CANDIDATES = top.map((c, i) => ({
+      id:    `c${i}`,
+      name:  apellido(c.nombreCandidato),
+      party: c.nombreAgrupacionPolitica,
+      color: COLOR_PALETTE[i] || '#64748b',
+      pct:   c.porcentajeVotosValidos,
+      votes: c.totalVotosValidos,
+    }));
+
+    CANDIDATES.push({
+      id: 'otros', name: 'Otros', party: `${otros.length} candidatos`,
+      color: '#334155', pct: otrosPct, votes: otrosVotos,
+    });
+
+    calcularProbs();
+
+    // ── Cargar historial desde KV ─────────────────────
+    await fetchHistorial();
+
+    // ── Re-renderizar todo ────────────────────────────
+    renderProgress();
+    renderResults();
+    renderProbs();
+    updateChart();
+    updateTicker();
+
+  } catch (err) {
+    console.error('Error al consultar ONPE:', err);
+    document.getElementById('last-update').textContent = 'Error de conexión';
+  }
+}
+
+async function fetchHistorial() {
+  try {
+    const res  = await fetch(`${PROXY_URL}/historial`);
+    const json = await res.json();
+    if (!json.success || !json.data.length) return;
+
+    // KV guarda nombres completos en el mismo orden (top9 desc)
+    // Los mapeamos al mismo orden que CANDIDATES usando el nombre
+    HISTORY = json.data.map(snap => ({
+      actas: snap.actas,
+      // snap.data está ordenado igual que CANDIDATES (desc por votos)
+      data:  snap.data.map(d => d.pct),
+      votos: snap.data.map(d => d.votos),
+    }));
+  } catch (err) {
+    console.warn('No se pudo cargar historial:', err);
+  }
+}
+
+// Extrae apellido(s) del nombre completo "APELLIDO NOMBRE"
+function apellido(nombre) {
+  const partes = nombre.trim().split(' ');
+  // Convención peruana: APELLIDO1 APELLIDO2 NOMBRE1 NOMBRE2
+  // Mostramos "Inicial. Apellido1"
+  const apellido1 = partes[0];
+  const nombre1   = partes[partes.length - 1];
+  return nombre1.charAt(0) + '. ' + apellido1.charAt(0) + apellido1.slice(1).toLowerCase();
+}
+
+// Probabilidad de pase a 2da vuelta basada en proyección JEE
+// Lógica: ¿puede el candidato X superar al candidato que está en 2° lugar
+// dado los votos restantes estimados por departamento?
+function calcularProbs() {
+  const top5 = CANDIDATES.slice(0, 5);
+  if (!PROYECCION_JEE || !PROYECCION_JEE.candidatos || PROYECCION_JEE.candidatos.length < 2) {
+    // Fallback simple mientras carga JEE
+    PROBS = top5.map((c, i) => ({ id: c.id, prob: i === 0 ? 99 : i === 1 ? 60 : 20 - i * 5 }));
+    return;
+  }
+
+  // Votos actuales y proyectados de los top5
+  const candidatosProy = PROYECCION_JEE.candidatosFull || [];
+  if (!candidatosProy.length) return;
+
+  // El 2° lugar proyectado
+  const sorted = [...candidatosProy].sort((a, b) => b.votasProy - a.votasProy);
+  const segundo = sorted[1];
+
+  PROBS = top5.map((c, i) => {
+    const cProy = candidatosProy[i];
+    if (!cProy) return { id: c.id, prob: 0 };
+
+    const votosAct    = cProy.votosAct;
+    const votosProy   = cProy.votasProy;
+    const adicional   = cProy.adicional;
+
+    // Votos que necesita para superar al 2° proyectado
+    const necesita = segundo.votasProy - votosProy;
+
+    if (necesita <= 0) {
+      // Ya está en 2° o 1° — probabilidad alta basada en margen
+      const margen = -necesita; // positivo = ventaja
+      const totalRest = PROYECCION_JEE.votosRestTotal || 1;
+      // Mientras mayor el margen relativo al total restante, más seguro
+      const seguridad = Math.min(99.9, 75 + (margen / totalRest) * 100 * 15);
+      return { id: c.id, prob: Math.round(seguridad * 10) / 10 };
+    } else {
+      // Necesita remontar — probabilidad basada en qué tan factible es
+      // El máximo adicional que puede sacar es su adicional estimado × 1.5 (escenario optimista)
+      const maxPosible = adicional * 1.5;
+      if (necesita > maxPosible) {
+        // Matemáticamente muy difícil
+        return { id: c.id, prob: Math.max(0.5, Math.round((maxPosible / necesita) * 15 * 10) / 10) };
+      } else {
+        // Posible pero requiere sobreperformance
+        const ratio = 1 - (necesita / maxPosible);
+        return { id: c.id, prob: Math.round(Math.min(60, ratio * 65) * 10) / 10 };
+      }
+    }
+  });
+}
+
+// ═══════════════════════════════════════════════════════
+//  HELPERS
+// ═══════════════════════════════════════════════════════
+
+function getCandidate(id) { return CANDIDATES.find(c => c.id === id) || CANDIDATES[0]; }
+
+function fmt(n) {
+  return n >= 1_000_000
+    ? (n / 1_000_000).toFixed(2) + 'M'
+    : n.toLocaleString('es-PE');
+}
+
+// ═══════════════════════════════════════════════════════
+//  RENDER FUNCTIONS
+// ═══════════════════════════════════════════════════════
+
+function renderProgress() {
+  document.getElementById('progress-fill').style.width = ACTAS.pct + '%';
+  document.getElementById('progress-pct').textContent = ACTAS.pct.toFixed(2) + '%';
+  document.getElementById('votos-validos').textContent = fmt(ACTAS.votosValidos);
+  document.getElementById('actas-pendientes').textContent =
+    (ACTAS.total - ACTAS.contabilizadas).toLocaleString('es-PE');
+  document.getElementById('total-actas').textContent =
+    ACTAS.total.toLocaleString('es-PE');
+}
+
+function renderResults() {
+  const tbody = document.getElementById('results-table');
+  if (!CANDIDATES.length) return;
+  const mainCands = CANDIDATES.filter(c => c.id !== 'otros');
+  const others    = CANDIDATES.find(c => c.id === 'otros');
+  const maxPct    = Math.max(...mainCands.map(c => c.pct));
+  const all       = others ? [...mainCands, others] : mainCands;
+
+  tbody.innerHTML = all.map((c, i) => {
+    const isTop2    = i < 2;
+    const rankLabel = i < mainCands.length ? (i + 1) + '°' : '–';
+    const bar2Tag   = isTop2 ? '<span class="second-round-tag">2V</span>' : '';
+    return `
+      <tr>
+        <td class="rank">${rankLabel}</td>
+        <td><span class="dot" style="background:${c.color}"></span></td>
+        <td>
+          <div class="cand-name">${c.name} ${bar2Tag}</div>
+          <div class="cand-party">${c.party}</div>
+        </td>
+        <td class="pct-bar-wrap" style="min-width:80px">
+          <div style="font-size:9px;color:var(--dim)">${c.id !== 'otros' ? fmt(c.votes) + ' votos' : ''}</div>
+          <div class="pct-bar">
+            <div class="pct-bar-fill" style="width:${(c.pct / maxPct * 100).toFixed(1)}%;background:${c.color}"></div>
+          </div>
+        </td>
+        <td class="pct-num" style="color:${c.color}">${c.pct.toFixed(2)}%</td>
+      </tr>
+    `;
+  }).join('');
+
+  // Barra apilada
+  const bar = document.getElementById('vote-bar');
+  bar.innerHTML = CANDIDATES.map(c => `
+    <div class="proj-segment"
+      style="width:${c.pct}%;background:${c.color}"
+      title="${c.name}: ${c.pct.toFixed(2)}%">
+      ${c.pct > 7 ? c.pct.toFixed(1) + '%' : ''}
+    </div>
+  `).join('');
+}
+
+function renderProbs() {
+  const grid = document.getElementById('prob-grid');
+  if (!PROBS.length) return;
+  grid.innerHTML = PROBS.map(p => {
+    const c    = getCandidate(p.id);
+    const pct  = p.prob;
+    const heat = pct >= 75 ? '#4ade80' : pct >= 35 ? '#f59e0b' : '#f43f5e';
+    return `
+      <div style="display:flex;align-items:center;gap:10px">
+        <span class="dot" style="background:${c.color};width:8px;height:8px;flex-shrink:0"></span>
+        <span style="font-size:12px;color:var(--bright);flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${c.name}</span>
+        <span style="font-size:13px;font-weight:500;color:${heat};min-width:44px;text-align:right">${pct.toFixed(1)}%</span>
+        <div style="width:80px;height:4px;background:var(--border);border-radius:2px;overflow:hidden;flex-shrink:0">
+          <div style="height:100%;width:${pct}%;background:${heat};border-radius:2px"></div>
+        </div>
+      </div>
+    `;
+  }).join('');
+
+  // Polymarket data — live desde API
+  const pmGrid = document.getElementById('polymarket-grid');
+  if (pmGrid) {
+    pmGrid.innerHTML = '<div style="color:var(--dim);font-size:11px">Cargando Polymarket...</div>';
+    fetch(`${PROXY_URL}/polymarket`)
+      .then(r => r.json())
+      .then(pm => {
+        if (!pm.success) throw new Error('Error Polymarket');
+        const top5 = pm.markets.slice(0, 5);
+        const volStr = pm.volume ? ` · $${Math.round(pm.volume/1000)}k vol.` : '';
+        // Actualizar subtítulo
+        const sub = document.querySelector('.card-title span');
+        if (sub) sub.textContent = `2do lugar${volStr}`;
+
+        pmGrid.innerHTML = top5.map(m => {
+          const pct  = Math.round(m.yesPrice * 100);
+          const heat = pct >= 25 ? '#4ade80' : pct >= 15 ? '#f59e0b' : '#f43f5e';
+          const name = m.name?.split(' ').slice(0,3).join(' ') || m.question;
+          return `
+            <div style="display:flex;align-items:center;gap:10px">
+              <span style="width:8px;height:8px;border-radius:50%;background:${heat};flex-shrink:0;display:inline-block"></span>
+              <span style="font-size:12px;color:var(--bright);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${name}</span>
+              <span style="font-size:13px;font-weight:500;color:${heat};min-width:44px;text-align:right">${pct}%</span>
+              <div style="width:80px;height:4px;background:var(--border);border-radius:2px;overflow:hidden;flex-shrink:0">
+                <div style="height:100%;width:${pct * 3}%;background:${heat};border-radius:2px"></div>
+              </div>
+            </div>
+          `;
+        }).join('');
+      })
+      .catch(() => {
+        pmGrid.innerHTML = '<div style="color:var(--dim);font-size:11px">No disponible en este momento</div>';
+      });
+  }
+}
+
+// ═══════════════════════════════════════════════════════
+//  EVOLUTION CHART
+// ═══════════════════════════════════════════════════════
+
+function initChart() {
+  const ctx = document.getElementById('evo-chart').getContext('2d');
+  Chart.defaults.color = '#606880';
+  Chart.defaults.borderColor = '#1e2540';
+
+  evoChart = new Chart(ctx, {
+    type: 'line',
+    data: { labels: [], datasets: [] },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      interaction: { mode: 'index', intersect: false },
+      plugins: {
+        legend: {
+          position: 'bottom',
+          labels: { boxWidth: 10, boxHeight: 10, padding: 12,
+            font: { family: 'DM Mono', size: 10 }, color: '#c8d0e8' }
+        },
+        tooltip: {
+          backgroundColor: '#0f1320', borderColor: '#1e2540', borderWidth: 1,
+          titleFont: { family: 'DM Mono', size: 10 },
+          bodyFont: { family: 'DM Mono', size: 11 },
+          callbacks: { label: ctx => ` ${ctx.dataset.label}: ${ctx.parsed.y.toFixed(2)}%` }
+        }
+      },
+      scales: {
+        x: {
+          grid: { color: '#1e2540' },
+          ticks: { font: { family: 'DM Mono', size: 9 }, color: '#606880' },
+          title: { display: true, text: '% Actas contabilizadas', color: '#3a4060', font: { size: 10 } }
+        },
+        y: {
+          grid: { color: '#1e2540' },
+          ticks: { font: { family: 'DM Mono', size: 9 }, color: '#606880',
+            callback: v => v.toFixed(1) + '%' },
+          title: { display: true, text: '% votos válidos', color: '#3a4060', font: { size: 10 } }
+        }
+      }
+    }
+  });
+}
+
+function updateChart() {
+  if (!evoChart || !HISTORY.length || !CANDIDATES.length) return;
+  const top5 = CANDIDATES.slice(0, 5);
+
+  // Labels: puntos históricos + punto proyectado
+  const labels = HISTORY.map(h => h.actas.toFixed(1) + '%');
+  const hasProy = PROYECCION_JEE && ACTAS.pct < 99.5;
+  if (hasProy) labels.push('100% ▶');
+
+  const datasets = top5.map((c, ci) => {
+    // Datos históricos
+    const historical = HISTORY.map(h => h.data[ci] ?? null);
+
+    // Punto proyectado desde PROYECCION_JEE
+    let proyData = [...historical];
+    if (hasProy) {
+      const proy = PROYECCION_JEE.candidatos[ci];
+      proyData.push(proy ? proy.pctProy : null);
+    }
+
+    const projIdx = historical.length; // índice donde empieza la proyección
+
+    return {
+      label: c.name,
+      data: proyData,
+      borderColor: c.color,
+      backgroundColor: c.color + '15',
+      borderWidth: 2,
+      pointRadius: proyData.map((_, i) => i === projIdx ? 5 : 3),
+      pointStyle: proyData.map((_, i) => i === projIdx ? 'diamond' : 'circle'),
+      pointBackgroundColor: proyData.map((_, i) => i === projIdx ? c.color : c.color),
+      segment: {
+        borderDash: ctx => ctx.p0DataIndex >= projIdx - 1 ? [5, 4] : undefined,
+        borderColor: ctx => ctx.p0DataIndex >= projIdx - 1 ? c.color + 'aa' : c.color,
+      },
+      tension: 0.3,
+      fill: false,
+    };
+  });
+
+  evoChart.data.labels  = labels;
+  evoChart.data.datasets = datasets;
+  evoChart.update();
+}
+
+function initMap() { /* mapa removido */ }
+
+// ═══════════════════════════════════════════════════════
+//  COUNTDOWN & LAST UPDATE
+// ═══════════════════════════════════════════════════════
+
+let refreshSeconds = 300;
+
+function updateTicker() {
+  const now = new Date();
+  document.getElementById('last-update').textContent =
+    now.toLocaleTimeString('es-PE', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+}
+
+function startCountdown() {
+  refreshSeconds = 300;
+  const el = document.getElementById('countdown');
+  const iv = setInterval(() => {
+    refreshSeconds--;
+    const m = String(Math.floor(refreshSeconds / 60)).padStart(2, '0');
+    const s = String(refreshSeconds % 60).padStart(2, '0');
+    el.textContent = `${m}:${s}`;
+    if (refreshSeconds <= 0) {
+      clearInterval(iv);
+      fetchOnpe();
+      startCountdown();
+    }
+  }, 1000);
+}
+
+// ═══════════════════════════════════════════════════════
+//  PROYECCIÓN JEE — por departamento
+// ═══════════════════════════════════════════════════════
+
+const DNI_RLA = '07845838';
+const DNI_SAN = '16002918';
+
+function fmtN(n) {
+  return Math.round(n).toLocaleString('es-PE');
+}
+
+function findDNI(arr, dni) {
+  return arr?.find(c => c.dniCandidato === dni);
+}
+
+async function fetchProyeccionJEE() {
+  try {
+    const [resNac, resDeps] = await Promise.all([
+      fetch(`${PROXY_URL}/todo`),
+      fetch(`${PROXY_URL}/todos-departamentos`),
+    ]);
+
+    const nac  = await resNac.json();
+    const deps = await resDeps.json();
+
+    if (!nac.participantes?.success || !deps.success) return;
+
+    const partNac = nac.participantes.data;
+    const totNac  = nac.totales.data;
+
+    const totalValActual = totNac.totalVotosValidos || 1;
+
+    // Top 9 candidatos nacionales (mismo orden que CANDIDATES)
+    const top9 = [...partNac].reverse().slice(0, 9);
+
+    // Acumular votos adicionales por candidato usando datos por departamento
+    const adicPorCand = new Array(top9.length).fill(0);
+    let votosRestTotal = 0, actasJeeTotal = 0, actasPendTotal = 0;
+
+    const filasDep = deps.data.map(dep => {
+      const t = dep.totales;
+      const p = dep.participantes || [];
+      if (!t) return null;
+
+      const actasContab  = t.contabilizadas || 0;
+      const votosVal     = t.totalVotosValidos || 0;
+      const votosPorActa = actasContab > 0 ? votosVal / actasContab : 0;
+      const jee  = t.enviadasJee   || 0;
+      const pend = t.pendientesJee || 0;
+      const actasRest = jee + pend;
+      const votosRest = Math.round(actasRest * votosPorActa);
+
+      // Para cada candidato del top9, buscar su % en este departamento
+      top9.forEach((cNac, ci) => {
+        const cDep = p.find(x => x.dniCandidato === cNac.dniCandidato);
+        const pctDep = cDep?.porcentajeVotosValidos || cNac.porcentajeVotosValidos;
+        adicPorCand[ci] += Math.round(votosRest * pctDep / 100);
+      });
+
+      votosRestTotal += votosRest;
+      actasJeeTotal  += jee;
+      actasPendTotal += pend;
+
+      const rla = p.find(x => x.dniCandidato === DNI_RLA);
+      const san = p.find(x => x.dniCandidato === DNI_SAN);
+      return {
+        nombre: dep.nombre, avance: t.actasContabilizadas || 0,
+        jee, pend, actasRest,
+        pctRla: rla?.porcentajeVotosValidos || 0,
+        pctSan: san?.porcentajeVotosValidos || 0,
+        votosRest,
+        rlaAdic: Math.round(votosRest * (rla?.porcentajeVotosValidos || 0) / 100),
+        sanAdic: Math.round(votosRest * (san?.porcentajeVotosValidos || 0) / 100),
+      };
+    }).filter(Boolean).sort((a, b) => b.actasRest - a.actasRest);
+
+    const totalProy = totalValActual + votosRestTotal;
+
+    // Proyección por candidato
+    const candidatosProy = top9.map((c, ci) => ({
+      nombre:   c.nombreCandidato,
+      dni:      c.dniCandidato,
+      votosAct: c.totalVotosValidos,
+      pctAct:   c.porcentajeVotosValidos,
+      adicional: adicPorCand[ci],
+      votasProy: c.totalVotosValidos + adicPorCand[ci],
+      pctProy:  ((c.totalVotosValidos + adicPorCand[ci]) / totalProy * 100),
+    }));
+
+    // Guardar en global para el gráfico y para calcularProbs
+    PROYECCION_JEE = {
+      totalProy,
+      votosRestTotal,
+      candidatosFull: candidatosProy,
+      candidatos: candidatosProy.slice(0, 5).map(c => ({ pctProy: c.pctProy })),
+    };
+
+    // ── Tabla debajo del gráfico ──────────────────────
+    const tbody = document.getElementById('proj-tbody');
+    if (tbody) {
+      tbody.innerHTML = candidatosProy.slice(0, 5).map((c, i) => {
+        const delta     = c.pctProy - c.pctAct;
+        const deltaStr  = (delta >= 0 ? '▲' : '▼') + ' ' + Math.abs(delta).toFixed(2);
+        const deltaCol  = delta >= 0 ? '#4ade80' : '#f43f5e';
+        const next      = candidatosProy[i + 1];
+        const ventaja   = next ? c.votasProy - next.votasProy : null;
+        const ventajaStr = ventaja !== null
+          ? `vs ${i+2}° ${ventaja >= 0 ? '+' : ''}${fmtN(ventaja)}`
+          : '—';
+        const ventajaCol = ventaja === null ? 'var(--dim)' : ventaja >= 0 ? '#4ade80' : '#f43f5e';
+        const cand = CANDIDATES[i];
+        const color = cand?.color || '#888';
+        const nombre = cand?.name || apellido(c.nombre);
+        return `
+          <tr style="border-bottom:1px solid var(--border)">
+            <td style="padding:7px 6px;color:var(--dim)">${i+1}°</td>
+            <td style="padding:7px 6px">
+              <span style="display:inline-flex;align-items:center;gap:6px">
+                <span style="width:8px;height:8px;border-radius:50%;background:${color};flex-shrink:0"></span>
+                <span style="color:var(--bright);font-weight:500">${nombre}</span>
+              </span>
+            </td>
+            <td style="padding:7px 6px;text-align:right;color:${color}">${c.pctAct.toFixed(2)}%</td>
+            <td style="padding:7px 6px;text-align:right;color:${color};font-weight:500">~${c.pctProy.toFixed(2)}%</td>
+            <td style="padding:7px 6px;text-align:right;color:${deltaCol};font-size:10px">${deltaStr}</td>
+            <td style="padding:7px 6px;text-align:right;color:var(--dim)">~${fmtN(c.votasProy)}</td>
+            <td style="padding:7px 6px;text-align:right;color:${ventajaCol};font-size:10px">${ventajaStr}</td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    // Actualizar gráfico con punto proyectado
+    updateChart();
+
+    // Recalcular probabilidades con datos JEE y re-renderizar
+    calcularProbs();
+    renderProbs();
+
+    // ── RLA vs Sánchez específico ─────────────────────
+    const rlaProy = candidatosProy.find(c => c.dni === DNI_RLA);
+    const sanProy = candidatosProy.find(c => c.dni === DNI_SAN);
+    const rlaVotosActual = rlaProy?.votosAct || 0;
+    const sanVotosActual = sanProy?.votosAct || 0;
+    const rlaTotal = rlaProy?.votasProy || 0;
+    const sanTotal = sanProy?.votasProy || 0;
+    const rlaAdicTotal = rlaProy?.adicional || 0;
+    const sanAdicTotal = sanProy?.adicional || 0;
+    const gap        = sanTotal - rlaTotal;
+    const gapActual  = sanVotosActual - rlaVotosActual;
+
+    // Nota metodológica
+    document.getElementById('jee-nota').innerHTML =
+      `Proyección basada en el patrón geográfico real de 2026: para cada departamento se aplica el % actual de cada candidato en esa zona a las actas restantes.
+      <strong style="color:var(--bright)"> Actas restantes: ${fmtN(actasJeeTotal + actasPendTotal)}</strong>
+      (${fmtN(actasJeeTotal)} en JEE + ${fmtN(actasPendTotal)} pendientes).`;
+
+    // Summary cards
+    document.getElementById('jee-summary').innerHTML = `
+      <div class="card" style="border-color:rgba(244,63,94,0.4)">
+        <div class="card-title" style="color:var(--dim);font-size:10px;letter-spacing:1px;margin-bottom:6px">LÓPEZ ALIAGA proyectado</div>
+        <div style="font-family:'Bebas Neue',sans-serif;font-size:1.6rem;color:#f43f5e">${fmtN(rlaTotal)}</div>
+        <div style="font-size:11px;color:var(--dim)">${(rlaTotal/totalProy*100).toFixed(2)}% · +${fmtN(rlaAdicTotal)} adicionales</div>
+      </div>
+      <div class="card" style="border-color:rgba(74,222,128,0.4)">
+        <div class="card-title" style="color:var(--dim);font-size:10px;letter-spacing:1px;margin-bottom:6px">SÁNCHEZ proyectado</div>
+        <div style="font-family:'Bebas Neue',sans-serif;font-size:1.6rem;color:#4ade80">${fmtN(sanTotal)}</div>
+        <div style="font-size:11px;color:var(--dim)">${(sanTotal/totalProy*100).toFixed(2)}% · +${fmtN(sanAdicTotal)} adicionales</div>
+      </div>
+      <div class="card">
+        <div class="card-title" style="color:var(--dim);font-size:10px;letter-spacing:1px;margin-bottom:6px">BRECHA ACTUAL</div>
+        <div style="font-family:'Bebas Neue',sans-serif;font-size:1.6rem;color:${gapActual>=0?'#4ade80':'#f43f5e'}">${gapActual>=0?'+':''}${fmtN(gapActual)}</div>
+        <div style="font-size:11px;color:var(--dim)">${gapActual>=0?'Sánchez adelante':'RLA adelante'}</div>
+      </div>
+      <div class="card">
+        <div class="card-title" style="color:var(--dim);font-size:10px;letter-spacing:1px;margin-bottom:6px">BRECHA PROYECTADA</div>
+        <div style="font-family:'Bebas Neue',sans-serif;font-size:1.6rem;color:${gap>=0?'#4ade80':'#f43f5e'}">${gap>=0?'+':''}${fmtN(gap)}</div>
+        <div style="font-size:11px;color:var(--dim)">${gap>=0?'Sánchez mantiene 2°':'RLA recupera 2°'} · ${gap>=gapActual?'brecha se amplía':'brecha se reduce'}</div>
+      </div>
+    `;
+
+    // Tabla JEE por departamento
+    document.getElementById('jee-tbody').innerHTML = filasDep.map(f => {
+      const difParcial = f.sanAdic - f.rlaAdic;
+      const difClass   = difParcial > 0 ? '#4ade80' : difParcial < 0 ? '#f43f5e' : 'var(--dim)';
+      return `
+        <tr>
+          <td style="color:var(--bright);font-weight:500">${f.nombre}</td>
+          <td style="text-align:right">${f.avance.toFixed(1)}%</td>
+          <td style="text-align:right">${fmtN(f.jee)}</td>
+          <td style="text-align:right">${fmtN(f.pend)}</td>
+          <td style="text-align:right;color:#f43f5e">${f.pctRla.toFixed(2)}%</td>
+          <td style="text-align:right;color:#4ade80">${f.pctSan.toFixed(2)}%</td>
+          <td style="text-align:right;color:var(--dim)">${fmtN(f.votosRest)}</td>
+          <td style="text-align:right;color:#f43f5e">+${fmtN(f.rlaAdic)}</td>
+          <td style="text-align:right;color:#4ade80">+${fmtN(f.sanAdic)}</td>
+          <td style="text-align:right;color:${difClass};font-weight:500">${(difParcial>=0?'+':'') + fmtN(difParcial)}</td>
+        </tr>
+      `;
+    }).join('');
+
+  } catch(e) {
+    console.error('Error en proyección JEE:', e);
+    document.getElementById('jee-nota').textContent = 'Error al cargar proyección JEE: ' + e.message;
+  }
+}
+
+// ═══════════════════════════════════════════════════════
+//  INIT
+// ═══════════════════════════════════════════════════════
+
+document.addEventListener('DOMContentLoaded', () => {
+  initChart();
+  fetchOnpe();
+  fetchProyeccionJEE();
+  startCountdown();
+});
+</script>
+
+<style>
+  /* Leaflet tooltip override */
+  .map-tooltip {
+    background: #0f1320 !important;
+    border: 1px solid #1e2540 !important;
+    border-radius: 4px !important;
+    color: #c8d0e8 !important;
+    font: 11px 'DM Mono', monospace !important;
+    padding: 6px 10px !important;
+    box-shadow: none !important;
+  }
+  .map-tooltip::before { display: none !important; }
+</style>
+
+</body>
+</html>
